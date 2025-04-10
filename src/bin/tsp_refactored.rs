@@ -27,7 +27,7 @@ fn main(){
     compute_min_cost(&mut subproblemsolutions, &distance_matrix);
 
 
-    let (final_cost, path) = return_to_start_and_backtrack(subproblemsolutions, &distance_matrix);
+    let (final_cost, path) = return_to_start_and_backtrack(&subproblemsolutions, &distance_matrix);
     println!("PRINTING FROM MAIN");
     println!("Final PATH: {:?}", path);
     println!("FINAL COST: {}", final_cost);
@@ -107,7 +107,7 @@ fn compute_min_cost(subproblemsolutions : &mut HashMap<(u64, usize), (i32, usize
     }
 }
 
-fn return_to_start_and_backtrack(subproblemsolutions : HashMap<(u64, usize), (i32, usize)>, dist: &Vec<Vec<i32>>)
+fn return_to_start_and_backtrack(subproblemsolutions : &HashMap<(u64, usize), (i32, usize)>, dist: &Vec<Vec<i32>>)
 -> (i32, Vec<usize>){
     // FINAL STEP: Close the tour
     let n = dist.len();
