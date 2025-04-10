@@ -26,12 +26,11 @@ fn main(){
 
     compute_min_cost(&mut subproblemsolutions, &distance_matrix);
 
-    // let (final_cost, last_city) = compute_return_to_start_city(&subproblemsolutions, &distance_matrix);
 
-    // let path = reconstruct_path(&dp, &dist, last_city);
-
-    // println!("FINAL COST: {}", final_cost);
-    // println!("Path: {:?}", path);
+    let (final_cost, path) = return_to_start_and_backtrack(subproblemsolutions, &distance_matrix);
+    println!("PRINTING FROM MAIN");
+    println!("Final PATH: {:?}", path);
+    println!("FINAL COST: {}", final_cost);
 
 }
 
@@ -108,8 +107,73 @@ fn compute_min_cost(subproblemsolutions : &mut HashMap<(u64, usize), (i32, usize
     }
 }
 
-// fn compute_return_to_start_city(){
-// }
-// fn reconstruct_path(){
-    
-// }
+fn return_to_start_and_backtrack(subproblemsolutions : HashMap<(u64, usize), (i32, usize)>, dist: &Vec<Vec<i32>>)
+-> (i32, Vec<usize>){
+    // FINAL STEP: Close the tour
+    let n = dist.len();
+    debug!("\n=== Final Step: Return to Start ===");
+
+    let full_mask = (1 << n) - 2; // all cities except 0
+    let mut min_total_cost = i32::MAX;
+    let mut final_last_city = 0;
+
+    for last_city in 1..n {
+        if let Some(&(cost, _)) = subproblemsolutions.get(&(full_mask, last_city)) {
+            let total_cost = cost + dist[last_city][0];
+            debug!(
+                "Cost of tour ending at city {} and returning to 0: {} + {} = {}",
+                last_city, cost, dist[last_city][0], total_cost
+            );
+
+            if total_cost < min_total_cost {
+                min_total_cost = total_cost;
+                final_last_city = last_city;
+            }
+        }
+    }
+
+    debug!("\n Shortest complete tour cost = {}", min_total_cost);
+
+    // PATH RECONSTRUCTION
+    debug!("\n=== Reconstructing Path (Step-by-Step) ===");
+
+    let mut path = vec![0]; // Start city
+    let mut mask = full_mask;
+    let mut last_city = final_last_city;
+
+    debug!("Starting backtrace:");
+    debug!("  Initial mask = {:04b} (visited all cities)", mask);
+    debug!("  Starting from last_city = {}", last_city);
+
+    path.push(last_city);
+
+    while mask != 0 {
+        let &(_, prev_city) = subproblemsolutions.get(&(mask, last_city)).unwrap();
+
+        debug!(
+            "\n--- Step ---\nCurrent mask: {:04b}\nLast city: {}\nPrevious city: {}",
+            mask, last_city, prev_city
+        );
+
+        // Show mask shrink visually
+        let new_mask = mask & !(1 << last_city);
+        debug!("Removing last_city {} gives new mask: {:04b}", last_city, new_mask);
+
+        if prev_city == 0 {
+            debug!("Found start city (0), ending backtrace.");
+            break;
+        }
+
+        path.push(prev_city);
+        mask = new_mask;
+        last_city = prev_city;
+    }
+
+    path.push(0); // return to start
+    path.reverse();
+
+    println!("\n Reconstructed Path from function: {:?}", path);
+    (min_total_cost, path)
+
+
+    }
