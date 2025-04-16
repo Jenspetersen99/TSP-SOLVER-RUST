@@ -1,8 +1,27 @@
-let distance_matrix = vec![
-        vec![0, 2, 9, 10, 5, 7],
-        vec![1, 0, 6, 4, 1, 3],
-        vec![15, 7, 0, 8, 9, 2],
-        vec![6, 3, 12, 0, 8, 8],
-        vec![10, 7, 10, 7, 0, 6],
-        vec![2, 3, 6, 9, 7, 9, 0],
-    ];
+build main:
+
+in release mode:
+
+cargo build --release --bin TSP-SOLVER-RUST
+
+cargo run --release --bin TSP-SOLVER-RUST
+
+
+in debug mode:
+
+cargo build  --bin TSP-SOLVER-RUST 
+
+cargo run --bin TSP-SOLVER-RUST 
+
+build binaries:
+
+debug mode:
+
+cargo build --bin optimal_validation 
+
+cargo run --bin optimal_validation 
+
+release mode:
+
+cargo build --bin optimal_validation --release
+cargo run --bin optimal_validation --release
