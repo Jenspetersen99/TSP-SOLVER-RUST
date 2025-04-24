@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 use itertools::Itertools;
-use std::time::Instant;
 
 const DEBUG: bool = false;
 
@@ -12,11 +11,9 @@ macro_rules! debug {
     };
 }
 
+use std::time::Instant;
 
 fn main() {
-    let start_time = Instant::now(); //  Start timer
-
-
     let distance_matrix = vec![
     vec![0, 29, 20, 21, 16, 31, 100, 12, 4, 31, 18, 25, 14, 8, 19, 28, 11, 33, 45, 9],
     vec![29, 0, 15, 29, 28, 40, 72, 21, 29, 41, 12, 17, 35, 23, 26, 37, 22, 44, 55, 20],
@@ -40,35 +37,43 @@ fn main() {
     vec![9, 20, 11, 17, 15, 18, 88, 14, 12, 19, 16, 13, 11, 7, 15, 16, 10, 19, 31, 0],
 ];
 
+    let start_time = Instant::now(); //  Start timer
 
+    let mut subproblemsolutions = std::collections::HashMap::new();
+    compute_base_case(&mut subproblemsolutions, &distance_matrix);
+    compute_min_cost(&mut subproblemsolutions, &distance_matrix);
+    let (final_cost, path) = return_to_start_and_backtrack(&subproblemsolutions, &distance_matrix);
 
-    // Print distance_matrix
-    for row in &distance_matrix {
-        debug!("{:?}", row);
-    }
+    let elapsed = start_time.elapsed(); //  Stop timer
 
-    // Our DP table now stores (cost, prev_city)
-    let mut subproblemsolutions: HashMap<(u64, usize), (i32, usize)> = HashMap::new();
+    println!("PRINTING FROM MAIN");
+    println!("Final PATH: {:?}", path);
+    println!("FINAL COST: {}", final_cost);
+    println!("Execution Time: {:.3?}", elapsed);
+}
 
-    let n = distance_matrix.len();
-    debug!("Number of cities: {}", n);
-
-    // Base case
+fn compute_base_case(subproblemsolutions : &mut HashMap<(u64, usize), (i32, usize)>,dist: &Vec<Vec<i32>>,){
+    let n = dist.len();
     for city in 1..n {
         let mask = 1 << city;
-        let cost = distance_matrix[0][city];
+        let cost = dist[0][city];
         subproblemsolutions.insert((mask, city), (cost, 0));
-        debug!("Base case = {:04b}, last_city = {}, cost = {}", mask, city, cost );
+        debug!("Base case = {:0width$b}, last_city = {}, cost = {}", mask, city, cost, width = n );
+        
     }
 
-    // DP table construction
+}
+
+fn compute_min_cost(subproblemsolutions : &mut HashMap<(u64, usize), (i32, usize)>, dist: &Vec<Vec<i32>>){
+    let n = dist.len();
+
     for subset_size in 2..n {
         for combo in (1..n).combinations(subset_size) {
             debug!("\n--- New Subset ---");
             debug!("Subset: {:?}", combo);
-
+            // fold is basically a for each loop
             let mask = combo.iter().fold(0u64, |acc, &c| acc | (1 << c));
-            debug!("Subset as bitmask = {:04b}", mask);
+            debug!("Subset as bitmask = {:0width$b}", mask, width = n);
 
             for &last_city in &combo {
                 let prev_mask = mask & !(1 << last_city);
@@ -92,10 +97,10 @@ fn main() {
                         );
                         debug!(
                             "    Cost from {} to {} = {}",
-                            prev_city, last_city, distance_matrix[prev_city][last_city]
+                            prev_city, last_city, dist[prev_city][last_city]
                         );
 
-                        let total_cost = cost_to_prev + distance_matrix[prev_city][last_city];
+                        let total_cost = cost_to_prev + dist[prev_city][last_city];
                         debug!("    Total cost to reach {} = {}", last_city, total_cost);
 
                         if total_cost < min_cost {
@@ -118,8 +123,12 @@ fn main() {
             }
         }
     }
+}
 
+fn return_to_start_and_backtrack(subproblemsolutions : &HashMap<(u64, usize), (i32, usize)>, dist: &Vec<Vec<i32>>)
+-> (i32, Vec<usize>){
     // FINAL STEP: Close the tour
+    let n = dist.len();
     debug!("\n=== Final Step: Return to Start ===");
 
     let full_mask = (1 << n) - 2; // all cities except 0
@@ -128,10 +137,10 @@ fn main() {
 
     for last_city in 1..n {
         if let Some(&(cost, _)) = subproblemsolutions.get(&(full_mask, last_city)) {
-            let total_cost = cost + distance_matrix[last_city][0];
+            let total_cost = cost + dist[last_city][0];
             debug!(
                 "Cost of tour ending at city {} and returning to 0: {} + {} = {}",
-                last_city, cost, distance_matrix[last_city][0], total_cost
+                last_city, cost, dist[last_city][0], total_cost
             );
 
             if total_cost < min_total_cost {
@@ -146,44 +155,43 @@ fn main() {
     // PATH RECONSTRUCTION
     debug!("\n=== Reconstructing Path (Step-by-Step) ===");
 
-let mut path = vec![0]; // Start city
-let mut mask = full_mask;
-let mut last_city = final_last_city;
+    let mut path = vec![0]; // Start city
+    let mut mask = full_mask;
+    let mut last_city = final_last_city;
 
-debug!("Starting backtrace:");
-debug!("  Initial mask = {:04b} (visited all cities)", mask);
-debug!("  Starting from last_city = {}", last_city);
+    debug!("Starting backtrace:");
+    debug!("  Initial mask = {:04b} (visited all cities)", mask);
+    debug!("  Starting from last_city = {}", last_city);
 
-path.push(last_city);
+    path.push(last_city);
 
-while mask != 0 {
-    let &(_, prev_city) = subproblemsolutions.get(&(mask, last_city)).unwrap();
+    while mask != 0 {
+        let &(_, prev_city) = subproblemsolutions.get(&(mask, last_city)).unwrap();
 
-    debug!(
-        "\n--- Step ---\nCurrent mask: {:04b}\nLast city: {}\nPrevious city: {}",
-        mask, last_city, prev_city
-    );
+        debug!(
+            "\n--- Step ---\nCurrent mask: {:04b}\nLast city: {}\nPrevious city: {}",
+            mask, last_city, prev_city
+        );
 
-    // Show mask shrink visually
-    let new_mask = mask & !(1 << last_city);
-    debug!("Removing last_city {} gives new mask: {:04b}", last_city, new_mask);
+        // Show mask shrink visually
+        let new_mask = mask & !(1 << last_city);
+        debug!("Removing last_city {} gives new mask: {:04b}", last_city, new_mask);
 
-    if prev_city == 0 {
-        debug!("Found start city (0), ending backtrace.");
-        break;
+        if prev_city == 0 {
+            debug!("Found start city (0), ending backtrace.");
+            break;
+        }
+
+        path.push(prev_city);
+        mask = new_mask;
+        last_city = prev_city;
     }
 
-    path.push(prev_city);
-    mask = new_mask;
-    last_city = prev_city;
-}
+    path.push(0); // return to start
+    path.reverse();
 
-path.push(0); // return to start
-path.reverse();
-let elapsed = start_time.elapsed(); //  Stop timer
-println!("Execution Time: {:.3?}", elapsed);
+    println!("\n Reconstructed Path from function: {:?}", path);
+    (min_total_cost, path)
 
 
-println!("\n Reconstructed Path: {:?}", path);
-
-}
+    }
